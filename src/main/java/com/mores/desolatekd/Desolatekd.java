@@ -20,7 +20,7 @@ import java.util.UUID;
 public final class Desolatekd extends JavaPlugin implements Listener {
     private FileConfiguration config;
     private File configFile;
-    protected Map<UUID,Integer[]> kdMap;
+    private Map<UUID,Integer[]> kdMap;
 
     @Override
     public void onEnable() {
