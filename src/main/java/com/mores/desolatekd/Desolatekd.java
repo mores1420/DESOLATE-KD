@@ -20,7 +20,7 @@ import java.util.UUID;
 public final class Desolatekd extends JavaPlugin implements Listener {
     private FileConfiguration config;
     private File configFile;
-    private Map<UUID,Integer[]> kdMap;
+    protected Map<UUID,Integer[]> kdMap;
 
     @Override
     public void onEnable() {
@@ -54,7 +54,7 @@ public final class Desolatekd extends JavaPlugin implements Listener {
         for (UUID uuid : kdMap.keySet()) {
             Integer[] kd = kdMap.get(uuid);
             config.set(uuid.toString() + ".kills", kd[0]);
-            config.set(uuid.toString() + ".deaths", kd[1]);
+            config.set(uuid + ".deaths", kd[1]);
         }
         this.saveConfig();
     }
@@ -68,15 +68,17 @@ public final class Desolatekd extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
+        UUID playerUUID = player.getUniqueId();
         if (player.getKiller() instanceof Player) {
             Player killer = player.getKiller();
             UUID killerUUID = killer.getUniqueId();
             int kills = kdMap.getOrDefault(killerUUID, new Integer[]{0, 0})[0] + 1;
             kdMap.put(killerUUID, new Integer[]{kills, kdMap.getOrDefault(killerUUID, new Integer[]{0, 0})[1]});
+            int deaths = kdMap.getOrDefault(playerUUID, new Integer[]{0, 0})[1] + 1;
+            kdMap.put(playerUUID, new Integer[]{kdMap.getOrDefault(playerUUID, new Integer[]{0, 0})[0], deaths});
+        }else {
+            return;
         }
-        UUID playerUUID = player.getUniqueId();
-        int deaths = kdMap.getOrDefault(playerUUID, new Integer[]{0, 0})[1] + 1;
-        kdMap.put(playerUUID, new Integer[]{kdMap.getOrDefault(playerUUID, new Integer[]{0, 0})[0], deaths});
         saveKdData();
     }
 
