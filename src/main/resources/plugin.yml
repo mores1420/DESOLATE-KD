@@ -1,7 +1,7 @@
-name: DesolateKD
-version: 1.1.5
-main: com.mores.desolatekd.Desolatekd
-api-version: 1.16
+name: Desolate-KD
+version: '${project.version}'
+main: org.desolate.DESOLATE_KD
+api-version: '1.16'
 author: MoresForDESOLATE
 commands:
   kd:

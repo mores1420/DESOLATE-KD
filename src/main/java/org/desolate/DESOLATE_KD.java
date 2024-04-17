@@ -1,12 +1,10 @@
-package com.mores.desolatekd;
+package org.desolate;
 
 import org.bukkit.ChatColor;
-import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -19,27 +17,32 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
-public final class Desolatekd extends JavaPlugin implements Listener {
-    private FileConfiguration config;
-    private File configFile;
+public final class DESOLATE_KD extends JavaPlugin implements Listener {
     private Map<UUID, Integer[]> kdMap;
 
     @Override
     public void onEnable() {
-        configFile = new File(getDataFolder(), "config.yml");
+        //配置文件加载
+        File configFile = new File(getDataFolder(), "config.yml");
         if (!configFile.exists()) {
-            configFile.getParentFile().mkdirs();
+            boolean isCreateDir = configFile.getParentFile().mkdirs();
+            //添加一个文件夹创建判断
+            if (!isCreateDir) {
+                getLogger().warning("Failed to create config.yml!");
+                return;
+            }
             saveResource("config.yml", false);
         }
-        config = YamlConfiguration.loadConfiguration(configFile);
+        //移除无用的配置文件读取
         this.kdMap = new HashMap<>();
         this.loadKdData();
-        this.getCommand("kd").setExecutor(new KDCommandExecutor());
+        //命令注册修改可能出现的空指针异常
+        Objects.requireNonNull(this.getCommand("kd")).setExecutor(new KDCommandExecutor());
         getServer().getPluginManager().registerEvents(this, this);
         saveConfig();
-        config = getConfig();
         getLogger().info("DESOLATE-KD LOADED!");
     }
 
@@ -68,19 +71,18 @@ public final class Desolatekd extends JavaPlugin implements Listener {
         saveKdData();
     }
 
-
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         UUID playerUUID = player.getUniqueId();
-        if (player.getKiller() instanceof Player) {
+        //判断玩家是否是否为空，如果为空不走如下逻辑，否则会出现空指针异常(而不是instanceof)
+        if (player.getKiller() != null) {
             Player killer = player.getKiller();
             UUID killerUUID = killer.getUniqueId();
             int kills = kdMap.getOrDefault(killerUUID, new Integer[]{0, 0})[0] + 1;
             kdMap.put(killerUUID, new Integer[]{kills, kdMap.getOrDefault(killerUUID, new Integer[]{0, 0})[1]});
             int deaths = kdMap.getOrDefault(playerUUID, new Integer[]{0, 0})[1] + 1;
             kdMap.put(playerUUID, new Integer[]{kdMap.getOrDefault(playerUUID, new Integer[]{0, 0})[0], deaths});
-
         } else {
             return;
         }
@@ -115,27 +117,24 @@ public final class Desolatekd extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onPlayerDamage(EntityDamageByEntityEvent event) {
-
-        Entity damagee = event.getEntity();
-        Entity damager = event.getDamager();
-        double damage = event.getDamage();
-        EntityType damagerType=damager.getType();
-        EntityType damageeType=damagee.getType();
-
-        System.out.println(damagerType+"111");
-        if (damagerType==EntityType.PLAYER) {
-            String damageeName = damagee.getName();
-            System.out.println(damageeName+"333");
-            Player Pdamager = ((Player) damager).getPlayer();
-            Pdamager.sendMessage(
+        Entity attackEntity = event.getDamager(); //攻击者
+        Entity attackedEntity = event.getEntity(); //被攻击者
+        double damageValue = event.getDamage(); //伤害数值
+        EntityType attackedType = attackedEntity.getType(); //被攻击者类型
+        //攻击事件格式化调试输出
+        getLogger().info("实体:" + attackedEntity.getName() + "被" + attackEntity.getName() + "攻击了");
+        if (attackedType == EntityType.PLAYER) {
+            Player attackPlayerObj = ((Player) attackEntity).getPlayer();
+            //判断空指针异常再行使用玩家对象
+            Objects.requireNonNull(attackPlayerObj).sendMessage(
                     ChatColor.RED + "对" +
-                            ChatColor.DARK_PURPLE + damageeName +
-                            ChatColor.RED + "造成" +
-                            ChatColor.GREEN + damage +
-                            ChatColor.RED + "伤害");
-        } else if (damageeType==EntityType.PLAYER) {
-            damagee.sendMessage("你受到"+damage+"伤害");
+                    ChatColor.DARK_PURPLE + attackedEntity.getName() +
+                    ChatColor.RED + "造成" +
+                    ChatColor.GREEN + damageValue +
+                    ChatColor.RED + "点伤害"
+            );
+            //取消无用判断
+            attackedEntity.sendMessage("你受到" + damageValue + "点伤害");
         }
     }
-
 }
